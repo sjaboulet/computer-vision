@@ -31,11 +31,11 @@ def run_pipeline(pdf_path):
         print(f"Error opening PDF: {e}")
         return []
 
-    # --- Step 1: Vision ---
+    # --- Vision ---
     det_model, det_processor = load_vision_models()
     final_zones = detect_layout(image, det_model, det_processor)
 
-    # --- Step 2: Extraction ---
+    # --- Extraction ---
     print(f"Extracting content from {len(final_zones)} zones...")
     draw = ImageDraw.Draw(image)
     layout_data = []
@@ -87,7 +87,7 @@ def run_pipeline(pdf_path):
 
 
 if __name__ == "__main__":
-    pdf_file = "./Attestation_Navigo (1).pdf"
+    pdf_file = "./resume français.pdf"
 
     if os.path.exists(pdf_file):
         data, debug_img = run_pipeline(pdf_file)
