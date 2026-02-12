@@ -3,13 +3,14 @@ import fitz
 try:
     import pytesseract
 except ImportError:
-    print("Warning: pytesseract not installed. OCR will fail on images.")
+    print("Warning: pytesseract not installed")
 
 
 def smart_extraction(page, box, scale_x, scale_y, image_full=None):
     """
-    1. Try native PDF text extraction (fast/accurate).
-    2. Fallback to OCR if text is missing but area is large (scanned document).
+    Two methods to extract text
+    1. Try native PDF text extraction (fast/accurate)
+    2. Fallback to OCR if text is missing but area is large (scanned document)
     """
     # 1. Native Extraction
     rect = fitz.Rect(
@@ -30,7 +31,6 @@ def smart_extraction(page, box, scale_x, scale_y, image_full=None):
         method = "ocr_tesseract"
         crop = image_full.crop((box[0], box[1], box[2], box[3]))
         try:
-            # Config: French + English, assume single text block
             ocr_text = pytesseract.image_to_string(
                 crop, lang="fra+eng", config="--psm 6"
             )
