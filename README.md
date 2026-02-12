@@ -4,117 +4,65 @@ A modern, high-performance Applicant Tracking System (ATS) that uses a multi-sta
 
 ## 🧠 AI Pipeline Architecture
 
-Instead of a simple text dump, this project implements a sophisticated vision-to-semantics pipeline to preserve document context and improve data accuracy.
-
-- **Visual Layout Layer (Surya-OCR)**: Acts as the "eyes" of the system. It detects document geometry to identify bounding boxes and classify elements (Titles, Headers, Lists). This ensures the reading order is preserved and semantic structure is recognized.
-- **Text Extraction Layer (Tesseract)**: Performs OCR on the identified zones. It uses a hybrid approach to extract native text layers when available or process visual pixels for scanned/image-based documents.
-- **Semantic Intelligence Layer (Mistral-7B)**: Powered by Hugging Face, this LLM acts as the "reasoning" engine. It cleans OCR noise, fixes spelling, and maps raw text into a strict JSON schema designed for recruitment forms.
+- **Visual Layout Layer (Surya-OCR)**: Detects document geometry (Titles, Headers, Lists).
+- **Text Extraction Layer (Tesseract)**: Performs OCR on identified zones.
+- **Semantic Intelligence Layer (Mistral-7B)**: Cleans OCR noise and maps raw text into a strict JSON schema using Hugging Face Inference.
 
 ---
 
-## 🛠️ Prerequisites
+## 🚀 Quick Start (Docker)
 
-- **Python 3.12+**
-- **Node.js & npm**
-- **Tesseract OCR**: Must be installed on your system path.
-  - _macOS_: `brew install tesseract`
-  - _Windows_: Install via [UB-Mannheim](https://github.com/UB-Mannheim/tesseract/wiki).
-  - _Linux_: `sudo apt install tesseract-ocr`
+The easiest way to run the project. No need to install Python, Node.js, or Tesseract manually.
 
----
+### 1. Prerequisites
 
-## 📂 Installation & Setup
+- **Docker Desktop** installed and running.
+- A **Hugging Face Access Token** (Read permissions).
 
-### 1. Backend Configuration
+### 2. Configuration
 
-1.  Navigate to the `ai-pipeline/` folder.
-2.  Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-### 2. Frontend Configuration
-
-1.  Navigate to the `doc-reader/` folder.
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-
-### 3. Hugging Face Token & Permissions
-
-The AI pipeline requires a Hugging Face Access Token to communicate with the Mistral model.
-
-1.  **Create a Token**:
-    - Log in to [huggingface.co](https://huggingface.co/).
-    - Go to **Settings** > **Access Tokens** > **New Token**.
-    - Set a name (e.g., `ATS-SmartReader`) and choose the **Read** role.
-2.  **CRITICAL - Enable Inference Permissions**:
-    - In the token permission settings, scroll down to the **"Inference"** or **"Providers"** section.
-    - **Check the box "Make calls to Inference Providers"**. Without this, the API will return a `403 Forbidden` error.
-3.  **Configure Environment**:
-    - Create a `.env` file in the `ai-pipeline/` folder.
-    - Add your token: `HF_TOKEN=hf_your_token_here`
-
----
-
-## 🚦 Running the Application
-
-You need to run both the server and the client simultaneously in separate terminals.
-
-### Terminal A: Python API (Backend)
+Create a `.env` file at the root of the project:
 
 ```bash
-cd ai-pipeline
-uvicorn api:app --reload
+# .env file
+HF_TOKEN=hf_your_token_here
+DATABASE_URL=postgresql://postgres:password@db:5432/ats_db
 ```
 
-The backend runs at http://127.0.0.1:8000.
+> **Note:** Ensure your Hugging Face token has **"Make calls to Inference Providers"** checked in your account settings.
 
-### Terminal B: Vite Client (Frontend)
+### 3. Run the App (Docker)
+
+Open your terminal and run:
 
 ```bash
-cd doc-reader
-npm run dev
+docker-compose up --build
 ```
 
----
+Wait for the containers to build. Once the logs stabilize:
 
-## 🎯 Usage
-
-1.  Open your browser and navigate to `http://localhost:5173`.
-2.  Click **"Upload Resume"** and select a PDF file.
-3.  Wait for the analysis to complete.
-4.  View the **Visual Layout** (annotated PDF) and the **Structured Profile** (JSON data) side-by-side.
-
-The frontend runs at http://localhost:5173.
+- **Frontend (Interface)**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:8000](http://localhost:8000)
+- **API Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Intelligence Engine**:
-  - **LLM**: Mistral-7B-Instruct (NLP) for semantic structuring and JSON formatting.
-  - **Vision**: Surya-OCR for layout analysis and document geometry detection.
-  - **OCR**: Tesseract for targeted character recognition.
-- **Backend**: FastAPI, Python 3.12+, Uvicorn.
-- **Frontend**: React, TypeScript, Tailwind CSS, Lucide Icons.
-
----
-
-## 📋 Pipeline Workflow Summary
-
-1.  **Input**: The user uploads a PDF file through the React interface.
-2.  **Surya (Vision)**: The system analyzes the document to identify "where" the content is (titles, headers, lists) and generates bounding boxes.
-3.  **Tesseract (OCR)**: The engine reads the text specifically within those detected zones.
-4.  **Mistral (LLM)**: The raw text is sent to the LLM which parses it into a clean JSON structure (Name, Email, Skills, Summary).
-5.  **Output**: The frontend auto-fills a "Smart Application Form" and displays a visual debug map of the scanned zones.
+- **Intelligence Engine**: Mistral-7B (LLM), Surya-OCR (Vision), Tesseract (OCR).
+- **Infrastructure**: Docker & Docker Compose.
+- **Backend**: FastAPI, Python 3.12+, PostgreSQL (SQLAlchemy).
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS.
 
 ---
 
 ## ⚠️ Troubleshooting
 
-- **403 Forbidden**: Ensure your Hugging Face token has the **"Make calls to Inference Providers"** permission enabled in your account settings.
-- **TesseractNotFoundError**: Verify that Tesseract is installed on your system and added to your environment `PATH`.
-- **CORS Errors**: Ensure the FastAPI backend is running on port `8000` to allow the frontend to communicate correctly.
-- **Empty Extraction**: If no text is found, check if the PDF is a scanned image without a text layer; ensure Tesseract languages are correctly installed.
+- **Image/PDF not loading?**:
+  The backend saves analyzed images in the `ai-pipeline/uploads` folder. Ensure your FastAPI app mounts this directory as static files (see `api.py`).
+
+- **Database Connection Error**:
+  If the logs show `Connection refused` (error 111), wait 10 seconds. Postgres takes longer to start than the Python API on the first run.
+
+- **403 Forbidden (Hugging Face)**:
+  Your token is invalid or lacks the "Inference" permission. Generate a new "Fine-grained" token or a classic "Read" token with inference enabled.

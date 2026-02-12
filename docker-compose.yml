@@ -1,0 +1,31 @@
+version: "3.8"
+services:
+  backend:
+    build: ./ai-pipeline
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-pipeline/uploads:/app/uploads
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/ats_db
+
+  frontend:
+    build: ./doc-reader
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=ats_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
