@@ -1,9 +1,9 @@
-from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import shutil
 import os
 import uuid
@@ -38,10 +38,12 @@ class CandidateCreate(BaseModel):
     skills: List[str]
     summary: str
     score: int | None = None
+    pros: List[str] | None = None
+    cons: List[str] | None = None
 
 
 @app.post("/analyze")
-async def analyze_document(file: UploadFile = File(...)):
+async def analyze_document(file: UploadFile = File(...), job_posting: Optional[str] = Form(None)):
     unique_id = str(uuid.uuid4())[:8]
     sanitized_filename = file.filename.replace(" ", "_")
     input_path = f"static/{unique_id}_{sanitized_filename}"
@@ -62,7 +64,7 @@ async def analyze_document(file: UploadFile = File(...)):
             print(f"Warning: Debug image not found at {original_debug_path}")
 
         full_text = "\n".join([b["content"] for b in layout_data])
-        profile_data = structure_data_with_llm(full_text)
+        profile_data = structure_data_with_llm(full_text, job_posting or "")
 
         if not profile_data.get("is_resume", False):
             return {
@@ -95,6 +97,8 @@ def save_candidate(candidate: CandidateCreate, db: Session = Depends(get_db)):
         skills=candidate.skills,
         summary=candidate.summary,
         score=candidate.score,
+        pros=candidate.pros,
+        cons=candidate.cons,
     )
     db.add(db_candidate)
     db.commit()

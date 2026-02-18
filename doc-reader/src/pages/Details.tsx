@@ -1,5 +1,5 @@
 import type { CandidateData } from "../types/types";
-import { ArrowLeft, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Mail, Phone, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "../utils/utils";
 
 interface DetailsProps {
@@ -71,6 +71,39 @@ export default function Details({ candidate, onBack, isDarkMode }: DetailsProps)
             ))}
           </div>
         </div>
+
+        {(candidate.pros?.length || candidate.cons?.length) ? (
+          <div className="grid grid-cols-2 gap-6 mt-8 border-t-4 border-black pt-6">
+            {candidate.pros?.length ? (
+              <div>
+                <h3 className="text-sm font-bold font-mono uppercase bg-green-200 inline-flex items-center gap-1 px-1 border border-black mb-3">
+                  <ThumbsUp size={12} /> Strengths
+                </h3>
+                <ul className="space-y-2">
+                  {candidate.pros.map((p, i) => (
+                    <li key={i} className={cn("font-mono text-sm border-l-4 border-green-400 pl-3 py-0.5", isDarkMode ? "text-white" : "text-black")}>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {candidate.cons?.length ? (
+              <div>
+                <h3 className="text-sm font-bold font-mono uppercase bg-red-200 inline-flex items-center gap-1 px-1 border border-black mb-3">
+                  <ThumbsDown size={12} /> Weaknesses
+                </h3>
+                <ul className="space-y-2">
+                  {candidate.cons.map((c, i) => (
+                    <li key={i} className={cn("font-mono text-sm border-l-4 border-red-400 pl-3 py-0.5", isDarkMode ? "text-white" : "text-black")}>
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

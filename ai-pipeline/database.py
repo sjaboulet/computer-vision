@@ -23,6 +23,8 @@ class Candidate(Base):
     skills = Column(JSON)
     summary = Column(String)
     score = Column(Integer, nullable=True)
+    pros = Column(JSON, nullable=True)
+    cons = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -32,3 +34,5 @@ Base.metadata.create_all(bind=engine)
 # Uses text() as required by SQLAlchemy 2.x; engine.begin() auto-commits DDL.
 with engine.begin() as conn:
     conn.execute(text("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS score INTEGER;"))
+    conn.execute(text("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS pros JSON;"))
+    conn.execute(text("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cons JSON;"))
