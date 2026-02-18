@@ -20,50 +20,54 @@ To avoid bloating the Git repository with large weight files, the backend is con
 
 ---
 
-## 🛠️ Installation and Execution Instructions
+## 🛠️ Installation and Setup
 
-### 1. Backend (FastAPI + AI Models) via Docker (Recommended)
+### 1. Configure Environment Variables
 
-The API requires specific system libraries (e.g., `libgl1` for OpenCV). Using Docker ensures a stable production-ready environment.
+Before running anything, create a `.env` file in the `ai-pipeline` directory. See the README file in the `ai-pipeline` folder for details on configuring the LLM backend (Hugging Face vs GitHub Copilot Models).
+
+---
+
+### 2. Run with Docker Compose (Recommended)
+
+Docker Compose starts the full stack (backend API, frontend, and PostgreSQL database) with a single command.
 
 ```bash
-# Navigate to the root of the project (where the Dockerfile is located)
-cd backend  # (adjust path if necessary)
-
-# 1. Build the Docker image
-docker build -t cv-parser-backend .
-
-# 2. Run the container on port 8000
-docker run -p 8000:8000 cv-parser-backend
+# From the project root
+docker-compose up --build
 ```
 
-> **Note:** On the very first run, the API will download the YOLOv8 weights (~50MB) and DocTR weights (~300MB). The first scan will therefore take a bit longer. The API will be available at `http://localhost:8000`.
+| Service  | URL                       |
+|----------|---------------------------|
+| Frontend | http://localhost:5173     |
+| Backend  | http://localhost:8000     |
+| Postgres | localhost:5432            |
 
-### Backend Alternative (Local without Docker)
+> **Note:** On the very first run the backend downloads YOLOv8 weights (~50 MB) and DocTR weights (~300 MB), so the first document scan will take a bit longer.
+
+---
+
+### 3. Manual Setup (without Docker)
+
+**Backend**
 
 ```bash
+cd ai-pipeline
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python3 api.py
 ```
 
-### 2. Frontend (React Interface)
-
-The frontend is built with React and Vite (or Create React App).
+**Frontend**
 
 ```bash
-# Open a new terminal and navigate to the frontend folder
-cd frontend
-
-# Install dependencies
+cd doc-reader
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-> The interface will be accessible at `http://localhost:5173` (or the port specified by Vite/npm).
+> The interface will be accessible at `http://localhost:5173`.
 
 ---
 
