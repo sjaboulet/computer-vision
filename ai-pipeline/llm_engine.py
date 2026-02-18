@@ -57,7 +57,8 @@ def structure_data_with_llm(raw_text):
                 "skills": ["skill1", "skill2"],
                 "experience": [
                     {{ "company": "string", "role": "string", "year": "string" }}
-                ]
+                ],
+                "score": integer between 0 and 100 reflecting overall resume quality (completeness, clarity, skills breadth, experience depth)
             }}
             
             TEXT TO ANALYZE:

@@ -37,6 +37,7 @@ class CandidateCreate(BaseModel):
     phone: str
     skills: List[str]
     summary: str
+    score: int | None = None
 
 
 @app.post("/analyze")
@@ -93,6 +94,7 @@ def save_candidate(candidate: CandidateCreate, db: Session = Depends(get_db)):
         phone=candidate.phone,
         skills=candidate.skills,
         summary=candidate.summary,
+        score=candidate.score,
     )
     db.add(db_candidate)
     db.commit()

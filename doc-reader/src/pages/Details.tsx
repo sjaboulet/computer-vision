@@ -27,8 +27,30 @@ export default function Details({ candidate, onBack, isDarkMode }: DetailsProps)
               <span className="flex items-center gap-2 bg-green-200 text-black px-2 border border-black"><Phone size={14} /> {candidate.phone}</span>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right flex flex-col items-end gap-2">
             <span className="text-xs font-mono text-gray-400">ID: {candidate.id}</span>
+            {candidate.score != null && (
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs font-mono font-bold uppercase">Resume Score</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-32 h-3 border-2 border-black bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${candidate.score}%`,
+                        backgroundColor: candidate.score >= 70 ? '#22c55e' : candidate.score >= 40 ? '#f59e0b' : '#ef4444'
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="px-2 py-0.5 border-2 border-black font-black font-mono text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    style={{ backgroundColor: candidate.score >= 70 ? '#bbf7d0' : candidate.score >= 40 ? '#fef08a' : '#fecaca' }}
+                  >
+                    {candidate.score}/100
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

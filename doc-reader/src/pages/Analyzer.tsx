@@ -20,7 +20,8 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
     email: '',
     phone: '',
     summary: '',
-    skills: []
+    skills: [],
+    score: null
   });
 
   const handleProcess = async () => {
@@ -56,7 +57,8 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
           email: result.profile_data.email || '',
           phone: result.profile_data.phone || '',
           skills: finalSkills,
-          summary: result.profile_data.summary || ''
+          summary: result.profile_data.summary || '',
+          score: typeof result.profile_data.score === 'number' ? result.profile_data.score : null
         });
       } else {
         toast(result.message, "error");
@@ -90,7 +92,7 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
     setFile(null);
     setVisualData(null);
     setPreviewUrl(null);
-    setFormValues({ full_name: '', email: '', phone: '', summary: '', skills: [] });
+    setFormValues({ full_name: '', email: '', phone: '', summary: '', skills: [], score: null });
   };
 
   const removeSkill = (s: string) => setFormValues({ ...formValues, skills: formValues.skills.filter(x => x !== s) });
@@ -213,6 +215,24 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
                     className={cn("w-full border-2 border-black p-2 font-mono text-sm mt-1 resize-none", isDarkMode ? "bg-black text-white" : "bg-white")}
                   />
                 </div>
+
+                {formValues.score != null && (
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase bg-green-200 text-black px-1 border border-black">Resume Score</label>
+                    <div className="mt-2 flex items-center gap-4">
+                      <div className="flex-1 h-4 border-2 border-black bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full transition-all duration-700"
+                          style={{
+                            width: `${formValues.score}%`,
+                            backgroundColor: formValues.score >= 70 ? '#22c55e' : formValues.score >= 40 ? '#f59e0b' : '#ef4444'
+                          }}
+                        />
+                      </div>
+                      <span className="font-black font-mono text-2xl w-14 text-right">{formValues.score}<span className="text-sm font-normal">/100</span></span>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <div className="flex justify-between items-end">
