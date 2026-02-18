@@ -1,68 +1,111 @@
-# ATS SmartReader
+# 🚀 AI Resume Parser Pipeline (Computer Vision & LLM)
 
-A modern, high-performance Applicant Tracking System (ATS) that uses a multi-stage AI pipeline to transform unstructured PDF resumes into validated candidate profiles.
+This project is a Full-Stack application designed to extract and structure data from resumes (PDFs/Images). It relies on a modular pipeline architecture combining **Computer Vision**, **Deep Learning (OCR)**, and a **Large Language Model (LLM)**.
 
-## 🧠 AI Pipeline Architecture
+## 🧠 Pipeline Architecture
 
-- **Visual Layout Layer (Surya-OCR)**: Detects document geometry (Titles, Headers, Lists).
-- **Text Extraction Layer (Tesseract)**: Performs OCR on identified zones.
-- **Semantic Intelligence Layer (Mistral-7B)**: Cleans OCR noise and maps raw text into a strict JSON schema using Hugging Face Inference.
+Our approach breaks down the complex task of document extraction into three specialized sub-tasks:
+
+1. **Vision (Layout Analysis) using YOLOv8**: Object Detection applied to documents. The model (`hantian/yolo-doclaynet.pt`) segments the resume into semantic blocks (Headers, Paragraphs, Lists).
+   _Note: This approach replaced our initial Surya-OCR implementation because it offers better block-level granularity rather than line-level, preserving the semantic context for the LLM._
+2. **OCR with DocTR**: Neural network-based Character Recognition (ResNet/Transformer architecture). This is applied exclusively to the bounding boxes cropped by YOLO, which entirely eliminates traditional multi-column reading issues.
+3. **Semantic Parsing (LLM)**: A language model processes the raw text extracted from the OCR and structures it into a strict JSON format (Skills, Experience, Contact info).
 
 ---
 
-## 🚀 Quick Start (Docker)
+## 📦 Trained Models (.pt)
 
-The easiest way to run the project. No need to install Python, Node.js, or Tesseract manually.
+The core vision model used is **YOLOv8m-DocLayNet**.
+To avoid bloating the Git repository with large weight files, the backend is configured to **automatically download the model weights (`.pt`) from the Hugging Face Hub** upon the first execution. The file will be saved locally as `yolov8m-doclaynet.pt`.
 
-### 1. Prerequisites
+---
 
-- **Docker Desktop** installed and running.
-- A **Hugging Face Access Token** (Read permissions).
+## 🛠️ Installation and Execution Instructions
 
-### 2. Configuration
+### 1. Backend (FastAPI + AI Models) via Docker (Recommended)
 
-Create a `.env` file at the root of the project:
+The API requires specific system libraries (e.g., `libgl1` for OpenCV). Using Docker ensures a stable production-ready environment.
 
 ```bash
-# .env file
-HF_TOKEN=hf_your_token_here
-DATABASE_URL=postgresql://postgres:password@db:5432/ats_db
+# Navigate to the root of the project (where the Dockerfile is located)
+cd backend  # (adjust path if necessary)
+
+# 1. Build the Docker image
+docker build -t cv-parser-backend .
+
+# 2. Run the container on port 8000
+docker run -p 8000:8000 cv-parser-backend
 ```
 
-> **Note:** Ensure your Hugging Face token has **"Make calls to Inference Providers"** checked in your account settings.
+> **Note:** On the very first run, the API will download the YOLOv8 weights (~50MB) and DocTR weights (~300MB). The first scan will therefore take a bit longer. The API will be available at `http://localhost:8000`.
 
-### 3. Run the App (Docker)
-
-Open your terminal and run:
+### Backend Alternative (Local without Docker)
 
 ```bash
-docker-compose up --build
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 api.py
 ```
 
-Wait for the containers to build. Once the logs stabilize:
+### 2. Frontend (React Interface)
 
-- **Frontend (Interface)**: [http://localhost:5173](http://localhost:5173)
-- **Backend API**: [http://localhost:8000](http://localhost:8000)
-- **API Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+The frontend is built with React and Vite (or Create React App).
+
+```bash
+# Open a new terminal and navigate to the frontend folder
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+
+> The interface will be accessible at `http://localhost:5173` (or the port specified by Vite/npm).
 
 ---
 
-## 🛠️ Tech Stack
+## 📊 Benchmark Script (Vision Comparison)
 
-- **Intelligence Engine**: Mistral-7B (LLM), Surya-OCR (Vision), Tesseract (OCR).
-- **Infrastructure**: Docker & Docker Compose.
-- **Backend**: FastAPI, Python 3.12+, PostgreSQL (SQLAlchemy).
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS.
+To justify our architectural choices, we provided a benchmark script comparing the "Line-level" approach (Surya) versus our final "Block-level" approach (YOLOv8).
+
+**To reproduce the benchmark:**
+
+1. Create a `test_cvs` folder at the root and place a few PDF resumes inside.
+2. Run the script:
+   ```bash
+   python3 benchmark.py
+   ```
+3. The visual results (drawn Bounding Boxes) will be generated in the `benchmark_results` folder. You will observe that YOLO natively groups semantic elements (e.g., entire bulleted lists) in a way that provides much better context for the LLM compared to Surya.
 
 ---
 
-## ⚠️ Troubleshooting
+## 📂 Project Structure
 
-- **Image/PDF not loading?**:
-  The backend saves analyzed images in the `ai-pipeline/uploads` folder. Ensure your FastAPI app mounts this directory as static files (see `api.py`).
-
-- **Database Connection Error**:
-  If the logs show `Connection refused` (error 111), wait 10 seconds. Postgres takes longer to start than the Python API on the first run.
-
-- **403 Forbidden (Hugging Face)**:
-  Your token is invalid or lacks the "Inference" permission. Generate a new "Fine-grained" token or a classic "Read" token with inference enabled.
+```text
+.
+├── ai-pipeline/                 # Backend (FastAPI & AI Models)
+│   ├── api.py                   # FastAPI entry point
+│   ├── main.py                  # Pipeline orchestrator (PDF -> Vision -> OCR)
+│   ├── vision_engine.py         # YOLOv8 module (Layout Detection)
+│   ├── extraction_engine.py     # DocTR module (OCR on cropped areas)
+│   ├── llm_engine.py            # JSON Structuring module via LLM
+│   ├── benchmark.py             # Comparative script (Surya vs YOLO)
+│   ├── database.py              # SQLite Database configuration
+│   ├── Dockerfile               # Backend containerization
+│   ├── requirements.txt         # Python dependencies
+│   ├── test_cvs/                # Folder containing PDFs for the benchmark
+│   ├── benchmark_results/       # Output folder for Surya vs YOLO comparisons
+│   └── yolov8m-doclaynet.pt     # Downloaded YOLOv8 weights
+│
+├── doc-reader/                  # Frontend (React + Vite + TypeScript)
+│   ├── src/                     # UI Source code (Pages, Components, Context)
+│   ├── package.json             # Node.js dependencies
+│   ├── tailwind.config.js       # Styling configuration
+│   └── Dockerfile               # Frontend containerization
+│
+├── docker-compose.yml           # Orchestration for running both services
+└── README.md                    # Project documentation
+```
