@@ -6,9 +6,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 HF_TOKEN = os.getenv("HF_TOKEN")
+COPILOT_TOKEN = os.getenv("COPILOT_TOKEN")
+COPILOT_MODEL = os.getenv("COPILOT_MODEL")
 
-REPO_ID = "mistralai/Mistral-7B-Instruct-v0.2"
-client = InferenceClient(model=REPO_ID, token=HF_TOKEN)
+_USE_COPILOT = bool(COPILOT_TOKEN and COPILOT_MODEL)
+
+if _USE_COPILOT:
+    from openai import OpenAI
+    _copilot_client = OpenAI(
+        base_url="https://models.inference.ai.azure.com",
+        api_key=COPILOT_TOKEN,
+    )
+else:
+    REPO_ID = "mistralai/Mistral-7B-Instruct-v0.2"
+    _hf_client = InferenceClient(model=REPO_ID, token=HF_TOKEN)
 
 
 def clean_json_output(text):
@@ -56,9 +67,17 @@ def structure_data_with_llm(raw_text):
     ]
 
     try:
-        response = client.chat_completion(
-            messages=messages, max_tokens=1000, temperature=0.1
-        )
+        if _USE_COPILOT:
+            response = _copilot_client.chat.completions.create(
+                model=COPILOT_MODEL,
+                messages=messages,
+                max_tokens=1000,
+                temperature=0.1,
+            )
+        else:
+            response = _hf_client.chat_completion(
+                messages=messages, max_tokens=1000, temperature=0.1
+            )
         raw_content = response.choices[0].message.content
         json_str = clean_json_output(raw_content)
         return json.loads(json_str)
