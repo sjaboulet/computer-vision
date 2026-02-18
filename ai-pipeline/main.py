@@ -1,12 +1,12 @@
 import fitz
 from vision_engine import predict_layout
-from extraction_engine import smart_extraction
 import cv2
 import os
+import pytesseract
+from PIL import Image
 
 
 def draw_debug_image(image_path, layout_data, output_path):
-    """Dessine les boîtes YOLO sur l'image pour le debug"""
     image = cv2.imread(image_path)
     for block in layout_data:
         x1, y1, x2, y2 = block["bbox"]
@@ -19,7 +19,6 @@ def draw_debug_image(image_path, layout_data, output_path):
 
 
 def run_pipeline(pdf_path):
-
     doc = fitz.open(pdf_path)
     page = doc[0]
     pix = page.get_pixmap(dpi=300)
@@ -28,22 +27,13 @@ def run_pipeline(pdf_path):
     pix.save(image_filename)
 
     layout_data = predict_layout(image_filename)
-
-    from PIL import Image
-
     full_image = Image.open(image_filename)
-
     final_blocks = []
-
-    scale_x = pix.width / page.rect.width
-    scale_y = pix.height / page.rect.height
 
     for block in layout_data:
         box = block["bbox"]
 
         crop = full_image.crop((box[0], box[1], box[2], box[3]))
-
-        import pytesseract
 
         try:
             text = pytesseract.image_to_string(crop, lang="fra+eng")

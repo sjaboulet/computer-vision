@@ -215,3 +215,6 @@ Result.json
 .DS_Store
 
 *.pt
+
+test_cvs/
+benchmark_results/
