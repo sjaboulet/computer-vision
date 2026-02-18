@@ -31,39 +31,62 @@ def clean_json_output(text):
     return text
 
 
-def structure_data_with_llm(raw_text):
+SYSTEM_PROMPT = (
+    "You are an expert ATS (Applicant Tracking System) and resume analyst. "
+    "Your job is to parse resumes and evaluate candidates. "
+    "You MUST respond with a single valid JSON object and nothing else — "
+    "no markdown fences, no explanation, no comments."
+)
 
+JSON_SCHEMA = """\
+{
+  "is_resume": boolean,      // true if the document is a CV/Resume, false otherwise
+  "full_name": "string",
+  "email": "string",
+  "phone": "string",
+  "summary": "string",       // max 30 words
+  "skills": ["string"],
+  "experience": [
+    { "company": "string", "role": "string", "year": "string" }
+  ],
+  "pros": ["string"],        // 2-4 concrete strengths
+  "cons": ["string"],        // 2-4 concrete weaknesses or gaps
+  "score": integer           // 0-100, see instructions
+}
+If is_resume is false, all fields may be empty / 0.\
+"""
+
+
+def _build_user_content(raw_text: str, job_posting: str) -> str:
+    has_job = bool(job_posting.strip())
+
+    score_note = (
+        "Score how well this candidate fits the job posting above (0 = no match, 100 = perfect fit)."
+        if has_job
+        else "Score overall resume quality: completeness, clarity, skills breadth, and experience depth."
+    )
+
+    parts = [f"RESUME:\n---\n{raw_text[:3500]}\n---"]
+
+    if has_job:
+        parts.append(f"JOB POSTING:\n---\n{job_posting[:2000]}\n---")
+
+    parts.append(
+        f"Return a JSON object matching this schema exactly:\n{JSON_SCHEMA}\n\nScoring note: {score_note}"
+    )
+
+    return "\n\n".join(parts)
+
+
+def structure_data_with_llm(raw_text: str, job_posting: str = ""):
+    user_content = _build_user_content(raw_text, job_posting)
+
+    # Both paths use the same user content.
+    # Mistral via HF requires strict user/assistant alternation — one user turn is enough.
+    # Copilot/OpenAI supports a richer multi-turn flow but the single-turn prompt works too.
     messages = [
-        {
-            "role": "system",
-            "content": "You are an expert Resume Parser. RETURN ONLY A VALID JSON OBJECT. NO MARKDOWN.",
-        },
-        {
-            "role": "user",
-            "content": f"""
-            Analyze the text below.
-            
-            1. First, determine if this document is a Resume/CV (Curriculum Vitae).
-            2. If it is NOT a resume (e.g. invoice, recipe, code, novel), set "is_resume" to false.
-            3. If it IS a resume, set "is_resume" to true and extract the data.
-
-            Return this EXACT JSON schema:
-            {{
-                "is_resume": boolean,
-                "full_name": "string",
-                "email": "string",
-                "phone": "string",
-                "summary": "string (max 30 words)",
-                "skills": ["skill1", "skill2"],
-                "experience": [
-                    {{ "company": "string", "role": "string", "year": "string" }}
-                ]
-            }}
-            
-            TEXT TO ANALYZE:
-            {raw_text[:3500]} 
-            """,
-        },
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
     ]
 
     try:

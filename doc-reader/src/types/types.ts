@@ -14,5 +14,8 @@ export interface CandidateData {
   phone: string;
   summary: string;
   skills: string[];
+  score?: number | null;
+  pros?: string[] | null;
+  cons?: string[] | null;
   created_at?: string;
 }

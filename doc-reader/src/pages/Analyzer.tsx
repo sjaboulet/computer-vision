@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, Eye, Sparkles, Loader2, Save, RotateCcw, Plus } from 'lucide-react';
+import { Upload, FileText, Eye, Sparkles, Loader2, Save, RotateCcw, Plus, Briefcase, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from "../utils/utils";
 import type { ExtractedBlock, CandidateData } from "../types/types";
 import { useToast } from "../context/useToast";
@@ -14,13 +14,17 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
   const [visualData, setVisualData] = useState<ExtractedBlock[] | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [newSkill, setNewSkill] = useState("");
+  const [jobPosting, setJobPosting] = useState("");
   const { toast } = useToast();
   const [formValues, setFormValues] = useState<CandidateData>({
     full_name: '',
     email: '',
     phone: '',
     summary: '',
-    skills: []
+    skills: [],
+    score: null,
+    pros: null,
+    cons: null,
   });
 
   const handleProcess = async () => {
@@ -31,6 +35,7 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (jobPosting.trim()) formData.append('job_posting', jobPosting);
 
       const response = await fetch('http://127.0.0.1:8000/analyze', {
         method: 'POST',
@@ -56,7 +61,10 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
           email: result.profile_data.email || '',
           phone: result.profile_data.phone || '',
           skills: finalSkills,
-          summary: result.profile_data.summary || ''
+          summary: result.profile_data.summary || '',
+          score: typeof result.profile_data.score === 'number' ? result.profile_data.score : null,
+          pros: Array.isArray(result.profile_data.pros) ? result.profile_data.pros : null,
+          cons: Array.isArray(result.profile_data.cons) ? result.profile_data.cons : null,
         });
       } else {
         toast(result.message, "error");
@@ -90,7 +98,7 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
     setFile(null);
     setVisualData(null);
     setPreviewUrl(null);
-    setFormValues({ full_name: '', email: '', phone: '', summary: '', skills: [] });
+    setFormValues({ full_name: '', email: '', phone: '', summary: '', skills: [], score: null, pros: null, cons: null });
   };
 
   const removeSkill = (s: string) => setFormValues({ ...formValues, skills: formValues.skills.filter(x => x !== s) });
@@ -121,6 +129,18 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
     <div>
       {!visualData && (
         <section className="mb-12">
+          <div className={cn("mb-6 border-4 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", isDarkMode ? "bg-[#252525]" : "bg-white")}>
+            <label className="flex items-center gap-2 font-mono text-xs font-bold uppercase bg-yellow-200 text-black px-1 border border-black mb-2">
+              <Briefcase size={12} /> Job Posting <span className="opacity-50 normal-case font-normal">(optional — paste to score against this role)</span>
+            </label>
+            <textarea
+              rows={5}
+              value={jobPosting}
+              onChange={e => setJobPosting(e.target.value)}
+              placeholder="Paste the job description here..."
+              className={cn("w-full border-2 border-black p-3 font-mono text-sm resize-none outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all", isDarkMode ? "bg-black text-white" : "bg-white")}
+            />
+          </div>
           <div
             onDrop={onDrop} onDragOver={(e) => e.preventDefault()}
             className={cn("border-4 border-dashed rounded-none p-12 text-center transition-all bg-white relative", isDarkMode ? "border-gray-600 bg-[#252525]" : "border-black")}
@@ -213,6 +233,51 @@ export default function Analyzer({ isDarkMode }: AnalyzerProps) {
                     className={cn("w-full border-2 border-black p-2 font-mono text-sm mt-1 resize-none", isDarkMode ? "bg-black text-white" : "bg-white")}
                   />
                 </div>
+
+                {formValues.score != null && (
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase bg-green-200 text-black px-1 border border-black">
+                      {jobPosting.trim() ? 'Job Match Score' : 'Resume Score'}
+                    </label>
+                    <div className="mt-2 flex items-center gap-4">
+                      <div className="flex-1 h-4 border-2 border-black bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full transition-all duration-700"
+                          style={{
+                            width: `${formValues.score}%`,
+                            backgroundColor: formValues.score >= 70 ? '#22c55e' : formValues.score >= 40 ? '#f59e0b' : '#ef4444'
+                          }}
+                        />
+                      </div>
+                      <span className="font-black font-mono text-2xl w-14 text-right">{formValues.score}<span className="text-sm font-normal">/100</span></span>
+                    </div>
+                  </div>
+                )}
+
+                {(formValues.pros?.length || formValues.cons?.length) ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    {formValues.pros?.length ? (
+                      <div>
+                        <label className="font-mono text-xs font-bold uppercase bg-green-200 text-black px-1 border border-black flex items-center gap-1 mb-2"><ThumbsUp size={10} /> Strengths</label>
+                        <ul className="space-y-1">
+                          {formValues.pros.map((p, i) => (
+                            <li key={i} className="font-mono text-xs flex items-start gap-1"><span className="text-green-500 font-black shrink-0">+</span>{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {formValues.cons?.length ? (
+                      <div>
+                        <label className="font-mono text-xs font-bold uppercase bg-red-200 text-black px-1 border border-black flex items-center gap-1 mb-2"><ThumbsDown size={10} /> Weaknesses</label>
+                        <ul className="space-y-1">
+                          {formValues.cons.map((c, i) => (
+                            <li key={i} className="font-mono text-xs flex items-start gap-1"><span className="text-red-500 font-black shrink-0">−</span>{c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div>
                   <div className="flex justify-between items-end">

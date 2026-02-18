@@ -68,6 +68,14 @@ export default function History({ onSelectCandidate, isDarkMode }: HistoryProps)
 
             <div className="flex justify-between items-start mb-4 pr-8">
               <h3 className="text-xl font-black font-mono truncate">{candidate.full_name}</h3>
+              {candidate.score != null && (
+                <span
+                  className="ml-2 shrink-0 px-2 py-0.5 border-2 border-black font-black font-mono text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  style={{ backgroundColor: candidate.score >= 70 ? '#bbf7d0' : candidate.score >= 40 ? '#fef08a' : '#fecaca' }}
+                >
+                  {candidate.score}
+                </span>
+              )}
             </div>
 
             <span className={cn("text-[10px] font-mono border border-black px-1 mb-2 self-start", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
