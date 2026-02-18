@@ -1,120 +1,111 @@
-# ATS SmartReader
+# 🚀 AI Resume Parser Pipeline (Computer Vision & LLM)
 
-A modern, high-performance Applicant Tracking System (ATS) that uses a multi-stage AI pipeline to transform unstructured PDF resumes into validated candidate profiles.
+This project is a Full-Stack application designed to extract and structure data from resumes (PDFs/Images). It relies on a modular pipeline architecture combining **Computer Vision**, **Deep Learning (OCR)**, and a **Large Language Model (LLM)**.
 
-## 🧠 AI Pipeline Architecture
+## 🧠 Pipeline Architecture
 
-Instead of a simple text dump, this project implements a sophisticated vision-to-semantics pipeline to preserve document context and improve data accuracy.
+Our approach breaks down the complex task of document extraction into three specialized sub-tasks:
 
-- **Visual Layout Layer (Surya-OCR)**: Acts as the "eyes" of the system. It detects document geometry to identify bounding boxes and classify elements (Titles, Headers, Lists). This ensures the reading order is preserved and semantic structure is recognized.
-- **Text Extraction Layer (Tesseract)**: Performs OCR on the identified zones. It uses a hybrid approach to extract native text layers when available or process visual pixels for scanned/image-based documents.
-- **Semantic Intelligence Layer (Mistral-7B)**: Powered by Hugging Face, this LLM acts as the "reasoning" engine. It cleans OCR noise, fixes spelling, and maps raw text into a strict JSON schema designed for recruitment forms.
-
----
-
-## 🛠️ Prerequisites
-
-- **Python 3.12+**
-- **Node.js & npm**
-- **Tesseract OCR**: Must be installed on your system path.
-  - _macOS_: `brew install tesseract`
-  - _Windows_: Install via [UB-Mannheim](https://github.com/UB-Mannheim/tesseract/wiki).
-  - _Linux_: `sudo apt install tesseract-ocr`
+1. **Vision (Layout Analysis) using YOLOv8**: Object Detection applied to documents. The model (`hantian/yolo-doclaynet.pt`) segments the resume into semantic blocks (Headers, Paragraphs, Lists).
+   _Note: This approach replaced our initial Surya-OCR implementation because it offers better block-level granularity rather than line-level, preserving the semantic context for the LLM._
+2. **OCR with DocTR**: Neural network-based Character Recognition (ResNet/Transformer architecture). This is applied exclusively to the bounding boxes cropped by YOLO, which entirely eliminates traditional multi-column reading issues.
+3. **Semantic Parsing (LLM)**: A language model processes the raw text extracted from the OCR and structures it into a strict JSON format (Skills, Experience, Contact info).
 
 ---
 
-## 📂 Installation & Setup
+## 📦 Trained Models (.pt)
 
-### 1. Backend Configuration
-
-1.  Navigate to the `ai-pipeline/` folder.
-2.  Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-### 2. Frontend Configuration
-
-1.  Navigate to the `doc-reader/` folder.
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-
-### 3. Hugging Face Token & Permissions
-
-The AI pipeline requires a Hugging Face Access Token to communicate with the Mistral model.
-
-1.  **Create a Token**:
-    - Log in to [huggingface.co](https://huggingface.co/).
-    - Go to **Settings** > **Access Tokens** > **New Token**.
-    - Set a name (e.g., `ATS-SmartReader`) and choose the **Read** role.
-2.  **CRITICAL - Enable Inference Permissions**:
-    - In the token permission settings, scroll down to the **"Inference"** or **"Providers"** section.
-    - **Check the box "Make calls to Inference Providers"**. Without this, the API will return a `403 Forbidden` error.
-3.  **Configure Environment**:
-    - Create a `.env` file in the `ai-pipeline/` folder.
-    - Add your token: `HF_TOKEN=hf_your_token_here`
+The core vision model used is **YOLOv8m-DocLayNet**.
+To avoid bloating the Git repository with large weight files, the backend is configured to **automatically download the model weights (`.pt`) from the Hugging Face Hub** upon the first execution. The file will be saved locally as `yolov8m-doclaynet.pt`.
 
 ---
 
-## 🚦 Running the Application
+## 🛠️ Installation and Execution Instructions
 
-You need to run both the server and the client simultaneously in separate terminals.
+### 1. Backend (FastAPI + AI Models) via Docker (Recommended)
 
-### Terminal A: Python API (Backend)
+The API requires specific system libraries (e.g., `libgl1` for OpenCV). Using Docker ensures a stable production-ready environment.
 
 ```bash
-cd ai-pipeline
-uvicorn api:app --reload
+# Navigate to the root of the project (where the Dockerfile is located)
+cd backend  # (adjust path if necessary)
+
+# 1. Build the Docker image
+docker build -t cv-parser-backend .
+
+# 2. Run the container on port 8000
+docker run -p 8000:8000 cv-parser-backend
 ```
 
-The backend runs at http://127.0.0.1:8000.
+> **Note:** On the very first run, the API will download the YOLOv8 weights (~50MB) and DocTR weights (~300MB). The first scan will therefore take a bit longer. The API will be available at `http://localhost:8000`.
 
-### Terminal B: Vite Client (Frontend)
+### Backend Alternative (Local without Docker)
 
 ```bash
-cd doc-reader
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 api.py
+```
+
+### 2. Frontend (React Interface)
+
+The frontend is built with React and Vite (or Create React App).
+
+```bash
+# Open a new terminal and navigate to the frontend folder
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
 ```
 
----
-
-## 🎯 Usage
-
-1.  Open your browser and navigate to `http://localhost:5173`.
-2.  Click **"Upload Resume"** and select a PDF file.
-3.  Wait for the analysis to complete.
-4.  View the **Visual Layout** (annotated PDF) and the **Structured Profile** (JSON data) side-by-side.
-
-The frontend runs at http://localhost:5173.
+> The interface will be accessible at `http://localhost:5173` (or the port specified by Vite/npm).
 
 ---
 
-## 🛠️ Tech Stack
+## 📊 Benchmark Script (Vision Comparison)
 
-- **Intelligence Engine**:
-  - **LLM**: Mistral-7B-Instruct (NLP) for semantic structuring and JSON formatting.
-  - **Vision**: Surya-OCR for layout analysis and document geometry detection.
-  - **OCR**: Tesseract for targeted character recognition.
-- **Backend**: FastAPI, Python 3.12+, Uvicorn.
-- **Frontend**: React, TypeScript, Tailwind CSS, Lucide Icons.
+To justify our architectural choices, we provided a benchmark script comparing the "Line-level" approach (Surya) versus our final "Block-level" approach (YOLOv8).
 
----
+**To reproduce the benchmark:**
 
-## 📋 Pipeline Workflow Summary
-
-1.  **Input**: The user uploads a PDF file through the React interface.
-2.  **Surya (Vision)**: The system analyzes the document to identify "where" the content is (titles, headers, lists) and generates bounding boxes.
-3.  **Tesseract (OCR)**: The engine reads the text specifically within those detected zones.
-4.  **Mistral (LLM)**: The raw text is sent to the LLM which parses it into a clean JSON structure (Name, Email, Skills, Summary).
-5.  **Output**: The frontend auto-fills a "Smart Application Form" and displays a visual debug map of the scanned zones.
+1. Create a `test_cvs` folder at the root and place a few PDF resumes inside.
+2. Run the script:
+   ```bash
+   python3 benchmark.py
+   ```
+3. The visual results (drawn Bounding Boxes) will be generated in the `benchmark_results` folder. You will observe that YOLO natively groups semantic elements (e.g., entire bulleted lists) in a way that provides much better context for the LLM compared to Surya.
 
 ---
 
-## ⚠️ Troubleshooting
+## 📂 Project Structure
 
-- **403 Forbidden**: Ensure your Hugging Face token has the **"Make calls to Inference Providers"** permission enabled in your account settings.
-- **TesseractNotFoundError**: Verify that Tesseract is installed on your system and added to your environment `PATH`.
-- **CORS Errors**: Ensure the FastAPI backend is running on port `8000` to allow the frontend to communicate correctly.
-- **Empty Extraction**: If no text is found, check if the PDF is a scanned image without a text layer; ensure Tesseract languages are correctly installed.
+```text
+.
+├── ai-pipeline/                 # Backend (FastAPI & AI Models)
+│   ├── api.py                   # FastAPI entry point
+│   ├── main.py                  # Pipeline orchestrator (PDF -> Vision -> OCR)
+│   ├── vision_engine.py         # YOLOv8 module (Layout Detection)
+│   ├── extraction_engine.py     # DocTR module (OCR on cropped areas)
+│   ├── llm_engine.py            # JSON Structuring module via LLM
+│   ├── benchmark.py             # Comparative script (Surya vs YOLO)
+│   ├── database.py              # SQLite Database configuration
+│   ├── Dockerfile               # Backend containerization
+│   ├── requirements.txt         # Python dependencies
+│   ├── test_cvs/                # Folder containing PDFs for the benchmark
+│   ├── benchmark_results/       # Output folder for Surya vs YOLO comparisons
+│   └── yolov8m-doclaynet.pt     # Downloaded YOLOv8 weights
+│
+├── doc-reader/                  # Frontend (React + Vite + TypeScript)
+│   ├── src/                     # UI Source code (Pages, Components, Context)
+│   ├── package.json             # Node.js dependencies
+│   ├── tailwind.config.js       # Styling configuration
+│   └── Dockerfile               # Frontend containerization
+│
+├── docker-compose.yml           # Orchestration for running both services
+└── README.md                    # Project documentation
+```

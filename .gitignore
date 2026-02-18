@@ -211,3 +211,10 @@ __marimo__/
 label_image_output/
 
 Result.json
+
+.DS_Store
+
+*.pt
+
+test_cvs/
+benchmark_results/
